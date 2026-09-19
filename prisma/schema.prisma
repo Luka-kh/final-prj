@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum BoardInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum BoardRole {
+  OWNER
+  MEMBER
+}
+
+model User {
+  id                       String            @id
+  name                     String
+  email                    String            @unique
+  emailVerified            Boolean           @default(false)
+  image                    String?
+  username                 String?           @unique
+  displayUsername          String?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  sessions                 Session[]
+  accounts                 Account[]
+  ownedBoards              Board[]           @relation("BoardOwner")
+  boardMemberships         BoardMember[]
+  sentFriendRequests       FriendRequest[]   @relation("SentFriendRequests")
+  receivedFriendRequests   FriendRequest[]   @relation("ReceivedFriendRequests")
+  friendshipsAsFirstUser   Friendship[]      @relation("FirstFriend")
+  friendshipsAsSecondUser  Friendship[]      @relation("SecondFriend")
+  sentBoardInvitations     BoardInvitation[] @relation("SentBoardInvitations")
+  receivedBoardInvitations BoardInvitation[] @relation("ReceivedBoardInvitations")
+  createdTasks             Task[]            @relation("TaskCreator")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model FriendRequest {
+  id         String              @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  sender     User                @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User                @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+}
+
+model Friendship {
+  id           String   @id @default(cuid())
+  firstUserId  String
+  secondUserId String
+  createdAt    DateTime @default(now())
+  firstUser    User     @relation("FirstFriend", fields: [firstUserId], references: [id], onDelete: Cascade)
+  secondUser   User     @relation("SecondFriend", fields: [secondUserId], references: [id], onDelete: Cascade)
+
+  @@unique([firstUserId, secondUserId])
+  @@index([secondUserId])
+}
+
+model Board {
+  id          String            @id @default(cuid())
+  name        String
+  ownerId     String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  owner       User              @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     BoardMember[]
+  invitations BoardInvitation[]
+  columns     BoardColumn[]
+
+  @@index([ownerId])
+}
+
+model BoardMember {
+  id        String    @id @default(cuid())
+  boardId   String
+  userId    String
+  role      BoardRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
+model BoardInvitation {
+  id         String                @id @default(cuid())
+  boardId    String
+  senderId   String
+  receiverId String
+  status     BoardInvitationStatus @default(PENDING)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  board      Board                 @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  sender     User                  @relation("SentBoardInvitations", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User                  @relation("ReceivedBoardInvitations", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, receiverId])
+  @@index([receiverId, status])
+}
+
+model BoardColumn {
+  id        String   @id @default(cuid())
+  name      String
+  color     String
+  position  Int
+  boardId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([boardId, position])
+  @@index([boardId])
+}
+
+model Task {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @default("")
+  position    Int
+  columnId    String
+  creatorId   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  column      BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  creator     User?       @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  subtasks    Subtask[]
+
+  @@unique([columnId, position])
+  @@index([columnId])
+  @@index([creatorId])
+}
+
+model Subtask {
+  id          String   @id @default(cuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  position    Int
+  taskId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, position])
+  @@index([taskId])
+}

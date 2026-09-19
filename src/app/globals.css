@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-jakarta);
+  --color-purple: #635fc7;
+  --color-purple-hover: #a8a4ff;
+  --color-black: #000112;
+  --color-very-dark-grey: #20212c;
+  --color-dark-grey: #2b2c37;
+  --color-lines-dark: #3e3f4e;
+  --color-medium-grey: #828fa3;
+  --color-lines-light: #e4ebfa;
+  --color-light-grey: #f4f7fd;
+  --color-white: #ffffff;
+  --color-red: #ea5555;
+  --color-red-hover: #ff9898;
+}
+
+:root {
+  --page-background: #f4f7fd;
+  --surface: #ffffff;
+  --surface-secondary: #f4f7fd;
+  --text-primary: #000112;
+  --text-secondary: #828fa3;
+  --border: #e4ebfa;
+  --overlay: rgb(0 0 0 / 0.5);
+}
+
+.dark {
+  --page-background: #20212c;
+  --surface: #2b2c37;
+  --surface-secondary: #20212c;
+  --text-primary: #ffffff;
+  --text-secondary: #828fa3;
+  --border: #3e3f4e;
+  --overlay: rgb(0 0 0 / 0.65);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page-background);
+  color: var(--text-primary);
+  font-family: var(--font-jakarta), sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: #635fc7;
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--page-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #828fa3;
+  border: 3px solid var(--page-background);
+  border-radius: 999px;
+}
